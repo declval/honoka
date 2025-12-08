@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <print>
@@ -30,7 +32,12 @@ const auto PROGRAM = "honoka"s;
 class Application {
 public:
   Application() : db_(nullptr) {
-    if (int rc = sqlite3_open(DATABASE.c_str(), &db_); rc) {
+    const auto path = std::filesystem::path(getenv("HOME")) / ".local" /
+                      "share" / PROGRAM / DATABASE;
+
+    std::filesystem::create_directories(path.parent_path());
+
+    if (int rc = sqlite3_open(path.c_str(), &db_); rc) {
       sqlite3_close(db_);
       throw std::runtime_error("Can't open database");
     }
