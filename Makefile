@@ -13,7 +13,7 @@ main.o: main.cpp
 ${PROGRAM}: ${OBJS}
 	${CXX} ${OBJS} ${LIBS} -o $@
 
-.PHONY: clean install
+.PHONY: clean install uninstall
 
 clean:
 	rm -f ${OBJS} ${PROGRAM}
@@ -21,3 +21,6 @@ clean:
 install: all
 	mkdir -p ${PREFIX}/bin
 	install -p ${PROGRAM} ${PREFIX}/bin
+
+uninstall:
+	rm -f ${PREFIX}/bin/${PROGRAM}
