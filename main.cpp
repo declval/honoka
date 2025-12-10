@@ -37,26 +37,16 @@ public:
 
     std::filesystem::create_directories(path.parent_path());
 
-    if (int rc = sqlite3_open(path.c_str(), &db_); rc) {
+    try {
+      if (int rc = sqlite3_open(path.c_str(), &db_); rc) {
+        throw std::runtime_error("Can't open database");
+      }
+
+      create();
+    } catch (...) {
       sqlite3_close(db_);
-      throw std::runtime_error("Can't open database");
+      throw;
     }
-
-    const auto query =
-        "CREATE TABLE IF NOT EXISTS cards (front TEXT PRIMARY KEY, back TEXT NOT NULL, interval INTEGER NOT NULL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"s;
-
-    sqlite3_stmt *stmt = nullptr;
-
-    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
-                       nullptr);
-
-    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
-      sqlite3_finalize(stmt);
-      sqlite3_close(db_);
-      throw std::runtime_error("Can't create table");
-    }
-
-    sqlite3_finalize(stmt);
   }
 
   ~Application() { sqlite3_close(db_); }
@@ -204,6 +194,23 @@ public:
   }
 
 private:
+  auto create() -> void {
+    const auto query =
+        "CREATE TABLE IF NOT EXISTS cards (front TEXT PRIMARY KEY, back TEXT NOT NULL, interval INTEGER NOT NULL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"s;
+
+    sqlite3_stmt *stmt = nullptr;
+
+    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
+                       nullptr);
+
+    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
+      sqlite3_finalize(stmt);
+      throw std::runtime_error("Can't create table");
+    }
+
+    sqlite3_finalize(stmt);
+  }
+
   auto needs_review(int interval, long long updated_at) -> bool {
     auto now = std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::system_clock::now().time_since_epoch())
