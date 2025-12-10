@@ -24,21 +24,22 @@
 using namespace std::literals;
 
 const auto DAY = 24h;
+
 const std::array<std::chrono::duration<long long>, 8> INTERVALS = {
     0 * DAY, 1 * DAY, 2 * DAY, 4 * DAY, 8 * DAY, 16 * DAY, 32 * DAY, 64 * DAY};
-const auto DATABASE = "data.db"s;
+
 const auto PROGRAM = "honoka"s;
+
+const auto DATABASE = std::filesystem::path(getenv("HOME")) / ".local"s /
+                      "share"s / PROGRAM / "data.db"s;
 
 class Application {
 public:
   Application() : db_(nullptr) {
-    const auto path = std::filesystem::path(getenv("HOME")) / ".local" /
-                      "share" / PROGRAM / DATABASE;
-
-    std::filesystem::create_directories(path.parent_path());
+    std::filesystem::create_directories(DATABASE.parent_path());
 
     try {
-      if (int rc = sqlite3_open(path.c_str(), &db_); rc) {
+      if (int rc = sqlite3_open(DATABASE.c_str(), &db_); rc) {
         throw std::runtime_error("Can't open database");
       }
 
