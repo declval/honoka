@@ -103,7 +103,7 @@ public:
   }
 
   auto next() -> void {
-    auto query =
+    const auto query =
         "SELECT front, back, interval, unixepoch(updated_at) FROM cards"s;
 
     sqlite3_stmt *stmt = nullptr;
@@ -151,28 +151,13 @@ public:
     std::string reply;
     std::cin >> reply;
 
-    query =
-        "UPDATE cards SET interval = ?, updated_at = CURRENT_TIMESTAMP WHERE front = ?"s;
-
     if (reply == "Y"s || reply == "y"s) {
       interval = sizetint(std::min(size_t(interval) + 1, INTERVALS.size() - 1));
     } else {
       interval = 1;
     }
 
-    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
-                       nullptr);
-
-    sqlite3_bind_int(stmt, 1, interval);
-    sqlite3_bind_text(stmt, 2, front.c_str(), sizetint(front.size()),
-                      SQLITE_STATIC);
-
-    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
-      sqlite3_finalize(stmt);
-      throw std::runtime_error("Can't update table");
-    }
-
-    sqlite3_finalize(stmt);
+    update(interval, front);
   }
 
   auto remove(const std::string &front) -> void {
@@ -223,6 +208,27 @@ private:
             .count();
 
     return now >= review_at;
+  }
+
+  auto update(int interval, const std::string &front) -> void {
+    const auto query =
+        "UPDATE cards SET interval = ?, updated_at = CURRENT_TIMESTAMP WHERE front = ?"s;
+
+    sqlite3_stmt *stmt = nullptr;
+
+    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
+                       nullptr);
+
+    sqlite3_bind_int(stmt, 1, interval);
+    sqlite3_bind_text(stmt, 2, front.c_str(), sizetint(front.size()),
+                      SQLITE_STATIC);
+
+    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
+      sqlite3_finalize(stmt);
+      throw std::runtime_error("Can't update table");
+    }
+
+    sqlite3_finalize(stmt);
   }
 
   sqlite3 *db_;
