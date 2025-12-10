@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O3 -Wall -Wconversion -Wextra -pedantic -std=c++23
+CXXFLAGS = -O3 -Wall -Wconversion -Wextra -march=native -pedantic -std=c++23
 LIBS = -lsqlite3
 OBJS = main.o
 PREFIX ?= /usr/local
