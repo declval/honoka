@@ -144,14 +144,15 @@ public:
       return;
     }
 
-    std::print("{}", front);
-    std::cin.get();
-    std::println("{}", back);
-    std::print("Ok? (y/n) ");
     std::string reply;
-    std::cin >> reply;
 
-    if (reply == "Y"s || reply == "y"s) {
+    std::print("{}", front);
+    std::getline(std::cin, reply);
+    std::println("{}", back);
+    std::print("Ok? (Y/n) ");
+    std::getline(std::cin, reply);
+
+    if (reply == ""s || reply == "Y"s || reply == "y"s) {
       interval = sizetint(std::min(size_t(interval) + 1, INTERVALS.size() - 1));
     } else {
       interval = 1;
