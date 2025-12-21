@@ -33,6 +33,8 @@ const auto PROGRAM = "honoka"s;
 const auto DATABASE = std::filesystem::path(getenv("HOME")) / ".local"s /
                       "share"s / PROGRAM / "data.db"s;
 
+const auto IFS = getenv("IFS");
+
 class Application {
 public:
   Application() : db_(nullptr) {
@@ -52,25 +54,26 @@ public:
 
   ~Application() { sqlite3_close(db_); }
 
-  auto add(const std::string &front, const std::string &back) -> void {
-    const auto query = "INSERT INTO cards (front, back) VALUES (?, ?)"s;
+  auto add() -> void {
+    std::string line;
 
-    sqlite3_stmt *stmt = nullptr;
+    while (std::getline(std::cin, line)) {
+      const auto pos = line.find(IFS ? *IFS : ' ');
 
-    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
-                       nullptr);
+      if (pos == std::string::npos) {
+        std::println(stderr, "Malformed line, separator not found: {}", line);
+        continue;
+      }
 
-    sqlite3_bind_text(stmt, 1, front.c_str(), sizetint(front.size()),
-                      SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, back.c_str(), sizetint(back.size()),
-                      SQLITE_STATIC);
+      const auto front = line.substr(0, pos);
+      const auto back = line.substr(pos + 1);
 
-    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
-      sqlite3_finalize(stmt);
-      throw std::runtime_error("Can't insert into table");
+      addOne(front, back);
     }
+  }
 
-    sqlite3_finalize(stmt);
+  auto add(const std::string &front, const std::string &back) -> void {
+    addOne(front, back);
   }
 
   auto list() -> void {
@@ -181,6 +184,27 @@ public:
   }
 
 private:
+  auto addOne(const std::string &front, const std::string &back) -> void {
+    const auto query = "INSERT INTO cards (front, back) VALUES (?, ?)"s;
+
+    sqlite3_stmt *stmt = nullptr;
+
+    sqlite3_prepare_v2(db_, query.c_str(), sizetint(query.size()), &stmt,
+                       nullptr);
+
+    sqlite3_bind_text(stmt, 1, front.c_str(), sizetint(front.size()),
+                      SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, back.c_str(), sizetint(back.size()),
+                      SQLITE_STATIC);
+
+    if (int rc = sqlite3_step(stmt); rc != SQLITE_DONE) {
+      sqlite3_finalize(stmt);
+      throw std::runtime_error("Can't insert into table");
+    }
+
+    sqlite3_finalize(stmt);
+  }
+
   auto create() -> void {
     const auto query =
         "CREATE TABLE IF NOT EXISTS cards (front TEXT PRIMARY KEY, back TEXT NOT NULL, interval INTEGER NOT NULL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"s;
@@ -236,7 +260,8 @@ private:
 };
 
 static auto usage() -> void {
-  std::println(stderr, "Usage: {} [add <front> <back> | list | remove <front>]",
+  std::println(stderr,
+               "Usage: {} [add [<front> <back>] | list | remove <front>]",
                PROGRAM);
 }
 
@@ -252,12 +277,16 @@ auto main(int argc, char *argv[]) -> int {
     const std::string command = argv[1];
 
     if (command == "add"s) {
-      requirenargs(4);
+      if (argc == 2) {
+        application.add();
+      } else {
+        requirenargs(4);
 
-      const std::string front = argv[2];
-      const std::string back = argv[3];
+        const std::string front = argv[2];
+        const std::string back = argv[3];
 
-      application.add(front, back);
+        application.add(front, back);
+      }
     } else if (command == "list"s) {
       requirenargs(2);
 
